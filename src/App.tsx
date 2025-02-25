@@ -49,7 +49,7 @@ function App() {
   const otherCryptos = cryptoData.filter((crypto) => crypto.symbol !== selectedCrypto);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-6">
+    <div className="min-h-screen animated-gradient p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-4 mb-8">
           <h1 className="text-3xl font-bold text-white">Crypto Dashboard</h1>
