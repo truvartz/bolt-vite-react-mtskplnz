@@ -3,39 +3,12 @@ import { Area, AreaChart, ResponsiveContainer, Tooltip, YAxis } from 'recharts';
 import { ArrowUpRight, ArrowDownRight, Loader2, ArrowLeft } from 'lucide-react';
 import axios from 'axios';
 import { CryptoData } from './types';
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+import CryptoDetail from './components/CryptoDetail';
 
-function App() {
-  const [cryptoData, setCryptoData] = useState<CryptoData[]>([]);
-  const [loading, setLoading] = useState(true);
+function CryptoList({ cryptoData, loading }: { cryptoData: CryptoData[], loading: boolean }) {
+  const navigate = useNavigate();
   const [selectedCrypto, setSelectedCrypto] = useState<string>('btc');
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await axios.get(
-          'https://api.coingecko.com/api/v3/coins/markets',
-          {
-            params: {
-              vs_currency: 'usd',
-              order: 'price_change_percentage_24h_desc',
-              per_page: 11,
-              page: 1,
-              sparkline: true,
-            },
-          }
-        );
-        setCryptoData(response.data);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching crypto data:', error);
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-    const interval = setInterval(fetchData, 60000); // Update every minute
-    return () => clearInterval(interval);
-  }, []);
 
   if (loading) {
     return (
@@ -65,7 +38,10 @@ function App() {
         </div>
         
         {selectedCryptoData && (
-          <div className="glass-card rounded-2xl p-8 shadow-2xl mb-8 transition-all duration-300 hover:shadow-purple-500/10">
+          <div 
+            onClick={() => navigate(`/crypto/${selectedCrypto}`)}
+            className="glass-card rounded-2xl p-8 shadow-2xl mb-8 transition-all duration-300 hover:shadow-purple-500/10 cursor-pointer"
+          >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <img src={selectedCryptoData.image} alt={selectedCryptoData.name} className="w-12 h-12" />
@@ -162,6 +138,48 @@ function App() {
         </div>
       </div>
     </div>
+  );
+}
+
+function App() {
+  const [cryptoData, setCryptoData] = useState<CryptoData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get(
+          'https://api.coingecko.com/api/v3/coins/markets',
+          {
+            params: {
+              vs_currency: 'usd',
+              order: 'price_change_percentage_24h_desc',
+              per_page: 11,
+              page: 1,
+              sparkline: true,
+            },
+          }
+        );
+        setCryptoData(response.data);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching crypto data:', error);
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+    const interval = setInterval(fetchData, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<CryptoList cryptoData={cryptoData} loading={loading} />} />
+        <Route path="/crypto/:symbol" element={<CryptoDetail cryptoData={cryptoData} />} />
+      </Routes>
+    </Router>
   );
 }
 
