@@ -1,17 +1,57 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Area, AreaChart, ResponsiveContainer, Tooltip, YAxis } from 'recharts';
 import { ArrowUpRight, ArrowDownRight, ArrowLeft } from 'lucide-react';
 import { CryptoData } from '../types';
+import axios from 'axios';
 
 interface CryptoDetailProps {
   cryptoData: CryptoData[];
 }
 
+interface ExchangeData {
+  exchange_id: string;
+  name: string;
+  trade_url: string;
+  image: string;
+  trust_score: number;
+  volume_usd: number;
+}
+
 function CryptoDetail({ cryptoData }: CryptoDetailProps) {
   const { symbol } = useParams();
   const navigate = useNavigate();
+  const [exchanges, setExchanges] = useState<ExchangeData[]>([]);
   const selectedCryptoData = cryptoData.find((crypto) => crypto.symbol === symbol);
+
+  useEffect(() => {
+    const fetchExchanges = async () => {
+      try {
+        const response = await axios.get(
+          `https://api.coingecko.com/api/v3/coins/${selectedCryptoData?.id}/tickers`
+        );
+        
+        const processedExchanges = response.data.tickers
+          .slice(0, 10)
+          .map((ticker: any) => ({
+            exchange_id: ticker.market.identifier,
+            name: ticker.market.name,
+            trade_url: ticker.trade_url,
+            image: `https://www.coingecko.com/exchanges/${ticker.market.identifier}.png`,
+            trust_score: ticker.trust_score || 0,
+            volume_usd: ticker.converted_volume.usd
+          }));
+        
+        setExchanges(processedExchanges);
+      } catch (error) {
+        console.error('Borsa verileri alınamadı:', error);
+      }
+    };
+
+    if (selectedCryptoData) {
+      fetchExchanges();
+    }
+  }, [selectedCryptoData]);
 
   if (!selectedCryptoData) {
     return <div>Kripto bulunamadı</div>;
@@ -147,6 +187,43 @@ function CryptoDetail({ cryptoData }: CryptoDetailProps) {
                   {((selectedCryptoData.market_cap / cryptoData.reduce((acc, curr) => acc + curr.market_cap, 0)) * 100).toFixed(2)}%
                 </p>
               </div>
+            </div>
+          </div>
+
+          <div className="mt-8">
+            <h3 className="text-white text-xl font-semibold mb-4">İşlem Gördüğü Borsalar</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {exchanges.map((exchange) => (
+                <a
+                  key={exchange.exchange_id}
+                  href={exchange.trade_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="glass-effect rounded-lg p-4 hover:bg-white/[0.09] transition-all duration-300"
+                >
+                  <div className="flex items-center gap-3">
+                    <img 
+                      src={exchange.image} 
+                      alt={exchange.name} 
+                      className="w-8 h-8 rounded-full"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://via.placeholder.com/32';
+                      }}
+                    />
+                    <div className="flex-1">
+                      <p className="text-white font-medium">{exchange.name}</p>
+                      <div className="flex items-center gap-4 mt-1">
+                        <span className="text-sm text-gray-400">
+                          24s Hacim: ${exchange.volume_usd.toLocaleString()}
+                        </span>
+                        <span className="text-sm text-gray-400">
+                          Güven Puanı: {exchange.trust_score}/10
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </a>
+              ))}
             </div>
           </div>
         </div>
